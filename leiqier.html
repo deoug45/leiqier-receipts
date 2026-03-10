@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+  <meta name="theme-color" content="#1a1a1a"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Leiqier Docs"/>
+  <link rel="manifest" href="manifest-leiqier.json"/>
+  <link rel="icon" href="leiqier_logo.png" type="image/png"/>
+  <link rel="apple-touch-icon" href="leiqier_logo.png"/>
+  <title>Leiqier International Stone — Document Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy, deleteDoc, doc, getDoc }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    const firebaseConfig = {
+  apiKey: "AIzaSyBtmT2u4FD0j3RIgXOewnH_m1qKvAX6hIk",
+  authDomain: "sign-up-form-85d4d.firebaseapp.com",
+  projectId: "sign-up-form-85d4d",
+  storageBucket: "sign-up-form-85d4d.firebasestorage.app",
+  messagingSenderId: "585622636818",
+  appId: "1:585622636818:web:5bafc791358f2e04a9cbcb"
+};
+    try {
+      const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
+      window._db=db; window._auth=auth;
+      window._fbCollection=collection; window._fbAddDoc=addDoc; window._fbGetDocs=getDocs;
+      window._fbQuery=query; window._fbOrderBy=orderBy; window._fbDeleteDoc=deleteDoc;
+      window._fbDoc=doc; window._fbGetDoc=getDoc;
+      window._fbSignIn=(e,p)=>signInWithEmailAndPassword(auth,e,p);
+      window._fbSignOut=()=>signOut(auth);
+      onAuthStateChanged(auth,user=>{
+        if(user){window._currentUser=user;window._firebaseReady=true;
+          document.dispatchEvent(new CustomEvent('authReady',{detail:{user}}));}
+        else{window._currentUser=null;window._firebaseReady=false;
+          document.dispatchEvent(new Event('authLoggedOut'));}
+      });
+    } catch(e){console.warn(e.message);document.dispatchEvent(new Event('authLoggedOut'));}
+  </script>
+  <style>
+    /* ── FONTS ── */
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,800;0,900;1,400&family=Source+Sans+3:wght@300;400;600;700&family=Roboto+Mono:wght@400;500;600;700&display=swap');
+
+    :root{
+      --ink:#111111; --ink-soft:#3a3a3a; --stone:#6b6b6b; --stone-lt:#a8a8a8;
+      --rule:#d0d0d0; --bg:#f5f5f3; --panel:#ffffff; --accent-lt:#efefed;
+      /* Number font — always Roboto Mono for legibility */
+      --num-font:'Roboto Mono', 'Courier New', monospace;
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    body{margin:0;background:var(--bg);color:var(--ink);font-size:13px;font-family:'Source Sans 3','Helvetica Neue',Arial,sans-serif;}
+
+    /* ── LOGIN ── */
+    #loginPage{display:none;position:fixed;inset:0;z-index:9999;background:var(--ink);align-items:center;justify-content:center;padding:20px;}
+    #loginPage.show{display:flex;}
+    .login-card{background:white;border-radius:4px;padding:40px 36px;width:100%;max-width:400px;box-shadow:0 32px 80px rgba(0,0,0,.6);animation:slideUp .4s ease;border-top:4px solid var(--ink);}
+    @keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+    .login-logo-wrap{text-align:center;margin-bottom:20px;}
+    .login-logo-wrap img{width:120px;height:auto;object-fit:contain;}
+    .login-title{font-family:'Playfair Display',serif;font-weight:900;font-size:17px;color:var(--ink);text-align:center;margin:0 0 2px;}
+    .login-sub{text-align:center;font-size:10px;color:var(--stone);margin:0 0 26px;letter-spacing:1px;text-transform:uppercase;}
+    .login-lbl{display:block;font-size:10px;font-weight:700;color:var(--stone);margin-bottom:5px;text-transform:uppercase;letter-spacing:.8px;}
+    .login-input{width:100%;padding:11px 13px;border-radius:3px;border:1.5px solid var(--rule);font-size:14px;background:#fafafa;outline:none;margin-bottom:14px;font-family:'Source Sans 3',sans-serif;transition:.2s;}
+    .login-input:focus{border-color:var(--ink);background:white;box-shadow:0 0 0 3px rgba(0,0,0,.07);}
+    .login-btn{width:100%;padding:13px;border-radius:3px;border:0;background:var(--ink);color:white;font-family:'Playfair Display',serif;font-weight:700;font-size:14px;cursor:pointer;letter-spacing:.8px;text-transform:uppercase;transition:all .2s;margin-top:6px;}
+    .login-btn:hover{background:var(--ink-soft);transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,.25);}
+    .login-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+    .login-err{background:#fee2e2;color:#991b1b;border-radius:3px;padding:10px 14px;font-size:12px;font-weight:600;margin-bottom:14px;display:none;border-left:3px solid #ef4444;}
+    .login-err.show{display:block;}
+    .login-footer{text-align:center;margin-top:22px;font-size:10px;color:#bbb;}
+    .login-footer span{color:var(--ink);font-weight:700;}
+
+    /* ── TOPBAR ── */
+    .topbar{background:var(--ink);color:white;height:58px;display:flex;align-items:center;padding:0 15px;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,.4);}
+    .hamburger{font-size:22px;cursor:pointer;margin-right:12px;color:#ccc;}
+    .topbar-logo{width:32px;height:32px;border-radius:3px;margin-right:10px;object-fit:contain;background:white;padding:3px;}
+    .topbar-text{flex:1;}
+    .topbar-title{font-size:13px;font-weight:700;letter-spacing:.8px;font-family:'Playfair Display',serif;text-transform:uppercase;}
+    .topbar-sub{font-size:9px;opacity:.5;letter-spacing:1.8px;text-transform:uppercase;}
+    .topbar-user{font-size:9px;color:var(--stone-lt);font-weight:600;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;}
+
+    /* ── DRAWER ── */
+    .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;opacity:0;pointer-events:none;transition:.3s;}
+    .drawer-overlay.active{opacity:1;pointer-events:all;}
+    .drawer{position:fixed;top:0;left:-290px;width:290px;height:100%;background:white;z-index:101;transition:.3s;box-shadow:4px 0 20px rgba(0,0,0,.25);display:flex;flex-direction:column;}
+    .drawer.active{left:0;}
+    .drawer-header{padding:22px 20px;background:var(--ink);color:white;}
+    .drawer-header img{width:56px;height:auto;object-fit:contain;margin-bottom:10px;display:block;background:white;padding:5px;border-radius:3px;}
+    .drawer-header h3{margin:0;font-family:'Playfair Display',serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;}
+    .drawer-header p{margin:3px 0 0;font-size:10px;opacity:.5;}
+    .drawer-menu{padding:6px 0;flex:1;overflow-y:auto;}
+    .drawer-item{padding:13px 20px;display:flex;align-items:center;gap:12px;color:var(--ink);font-size:13px;cursor:pointer;border-bottom:1px solid #f0f0f0;transition:background .15s;}
+    .drawer-item:hover{background:var(--accent-lt);}
+    .drawer-item .di{font-size:17px;}
+    .drawer-item.danger{color:#ef4444;}
+    .drawer-item.danger:hover{background:#fee2e2;}
+    .drawer-user-info{padding:11px 20px;background:#f5f5f3;font-size:11px;color:var(--stone);font-weight:600;border-bottom:1px solid var(--rule);}
+
+    /* ── MOBILE TABS ── */
+    .mobile-tabs{display:none;background:white;border-bottom:2px solid var(--ink);position:sticky;top:58px;z-index:40;}
+    .tab{flex:1;text-align:center;padding:11px 0;font-weight:700;color:#aaa;cursor:pointer;border-bottom:3px solid transparent;font-family:'Playfair Display',serif;font-size:11px;letter-spacing:.5px;text-transform:uppercase;}
+    .tab.active{color:var(--ink);border-bottom:3px solid var(--ink);}
+
+    /* ── LAYOUT ── */
+    .wrap{max-width:1440px;margin:0 auto;padding:20px;display:flex;gap:22px;align-items:flex-start;}
+    .editor-section{width:390px;background:var(--panel);border-radius:4px;padding:20px;box-shadow:0 4px 20px rgba(0,0,0,.1);flex-shrink:0;border-top:4px solid var(--ink);}
+    .preview-section{flex:1;background:#d0d0cc;border-radius:4px;display:flex;justify-content:center;overflow:hidden;padding:22px 10px;min-height:600px;}
+    @media(max-width:860px){
+      .wrap{padding:0;flex-direction:column;gap:0;}
+      .mobile-tabs{display:flex;width:100%;}
+      .editor-section{width:100%;border-radius:0;box-shadow:none;padding:15px;}
+      .preview-section{width:100%;padding:10px 0;display:none;background:#c8c8c4;min-height:calc(100vh - 105px);}
+    }
+
+    /* ── FORM ── */
+    .sec-hd{font-family:'Playfair Display',serif;font-size:9.5px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:1.8px;margin:18px 0 10px;padding-bottom:6px;border-bottom:1.5px solid var(--rule);}
+    .fg{margin-bottom:12px;}
+    label{display:block;font-size:10px;font-weight:700;color:var(--stone);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px;}
+    input,select,textarea{width:100%;padding:9px 11px;border-radius:3px;border:1.5px solid var(--rule);font-size:13px;background:#fafafa;outline:none;transition:.2s;font-family:'Source Sans 3',sans-serif;}
+    input:focus,select:focus,textarea:focus{border-color:var(--ink);background:white;box-shadow:0 0 0 3px rgba(0,0,0,.06);}
+    .frow{display:flex;gap:10px;}.frow>div{flex:1;}
+    .btn{padding:10px 14px;border-radius:3px;border:0;font-weight:700;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;gap:6px;width:100%;font-family:'Playfair Display',serif;letter-spacing:.8px;text-transform:uppercase;transition:all .2s;}
+    .btn-dk{background:var(--ink);color:white;}
+    .btn-dk:hover{background:var(--ink-soft);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.2);}
+    .btn-md{background:var(--stone);color:white;}
+    .btn-md:hover{background:var(--ink-soft);transform:translateY(-1px);}
+    .btn-o{background:transparent;border:2px solid var(--ink);color:var(--ink);}
+    .btn-o:hover{background:var(--accent-lt);}
+    .docno-badge{background:var(--accent-lt);border:1.5px dashed var(--stone-lt);border-radius:3px;padding:8px 12px;font-family:var(--num-font);font-weight:700;color:var(--ink-soft);font-size:13px;text-align:center;letter-spacing:.5px;}
+    .ilist{margin-top:8px;max-height:150px;overflow-y:auto;background:white;border:1.5px solid var(--rule);border-radius:3px;}
+    .irow{padding:8px 12px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;font-size:12px;}
+    .irow:last-child{border-bottom:none;}
+    .delbtn{color:#ef4444;font-weight:bold;cursor:pointer;padding:4px 7px;border-radius:3px;}
+    .delbtn:hover{background:#fee2e2;}
+    .fbs{font-size:10px;text-align:center;padding:5px 10px;border-radius:3px;margin-bottom:12px;font-weight:600;}
+    .fbs.ok{background:#d1fae5;color:#065f46;}
+    .fbs.err{background:#fee2e2;color:#991b1b;}
+    .fbs.pend{background:#fef3c7;color:#92400e;}
+
+    /* ── OVERLAY ── */
+    #dlOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+    #dlOverlay.show{display:flex;}
+    #dlOverlay .dl-msg{color:white;font-family:'Playfair Display',serif;font-weight:700;font-size:15px;letter-spacing:.5px;}
+    .spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,.2);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ═══════════════════════════════════════
+       A4 DOCUMENT STYLES
+       ═══════════════════════════════════════ */
+    .doc-wrapper{transform-origin:top center;transition:.15s;}
+    .doc{
+      width:794px;height:1123px;background:#fff;padding:0;
+      font-size:11px;color:#111;line-height:1.45;
+      display:flex;flex-direction:column;
+      font-family:'Source Sans 3','Helvetica Neue',Helvetica,Arial,sans-serif;
+      box-shadow:0 12px 40px rgba(0,0,0,.18);overflow:hidden;position:relative;
+    }
+
+    /* Watermark */
+    .doc-wm{position:absolute;inset:0;background:url('leiqier_logo.png') no-repeat center 44% / 280px;opacity:.06;z-index:1;pointer-events:none;}
+
+    .doc-inner{position:relative;z-index:10;display:flex;flex-direction:column;height:100%;}
+
+    /* Header */
+    .dhband{background:#fff;padding:18px 46px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #111;}
+    .dhband-left{display:flex;align-items:center;gap:18px;}
+    .dhband-logo{width:108px;height:80px;display:flex;align-items:center;justify-content:flex-start;flex-shrink:0;}
+    .dhband-logo img{height:76px;width:auto;object-fit:contain;}
+    .dhband-divider{width:1.5px;height:55px;background:#ccc;flex-shrink:0;}
+    .dhband-co-name{font-family:'Playfair Display',serif;font-weight:900;font-size:13.5px;text-transform:uppercase;letter-spacing:.3px;color:#111;line-height:1.3;}
+    .dhband-co-detail{font-size:8.5px;color:#777;margin-top:5px;line-height:1.9;}
+
+    /* Black doc type banner */
+    .doc-type-banner{background:#111;padding:8px 46px;display:flex;justify-content:space-between;align-items:center;}
+    .doc-type-title{font-family:'Playfair Display',serif;font-weight:900;font-size:21px;color:#fff;text-transform:uppercase;letter-spacing:3px;}
+    .doc-type-meta{text-align:right;}
+    .doc-meta-row{display:flex;gap:14px;justify-content:flex-end;align-items:center;margin-bottom:3px;}
+    .doc-meta-lbl{font-size:8px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px;}
+    /* ✅ FIX #1: Dates use Roboto Mono — no more ambiguous serif digit shapes */
+    .doc-meta-val{font-size:11px;font-weight:600;color:white;font-family:var(--num-font);letter-spacing:.3px;}
+
+    /* Doc number strip */
+    .docno-strip{background:#f5f5f3;border-bottom:1.5px solid #e0e0e0;padding:6px 46px;display:flex;justify-content:space-between;align-items:center;}
+    .docno-strip-lbl{font-size:8px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:1px;}
+    /* ✅ FIX #2: Document number is now monospaced for professional look */
+    .docno-strip-val{font-family:var(--num-font);font-weight:700;font-size:13px;color:#111;letter-spacing:.5px;}
+
+    /* Body */
+    .dbody{padding:14px 46px 0;flex:1;display:flex;flex-direction:column;}
+    .dbt{margin-bottom:10px;}
+    .dbt-lbl{font-size:8.5px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px;}
+    .dbt-name{font-family:'Playfair Display',serif;font-size:14px;font-weight:800;color:#111;text-transform:uppercase;}
+    .dbt-sub{font-size:10px;color:#666;font-style:italic;margin-top:2px;}
+    .ddiv{height:1px;background:#e0e0e0;margin-bottom:10px;}
+
+    /* Table */
+    .mtable{width:100%;border-collapse:collapse;}
+    .mtable thead tr{background:#111;}
+    .mtable th{color:white;padding:8px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;font-family:'Source Sans 3',sans-serif;border:none;}
+    .mtable th.thstone{background:#444;}
+    .mtable td{padding:8px 10px;font-size:11.5px;border-bottom:1px solid #eee;vertical-align:middle;font-family:'Source Sans 3',sans-serif;}
+    .mtable tbody tr:nth-child(even) td{background:#fafafa;}
+    .mtable tbody tr:nth-child(odd) td{background:#fff;}
+    /* ✅ FIX #3: Amount cells use Roboto Mono — digits are tabular, perfectly aligned */
+    .mtable .numcell{
+      font-family:var(--num-font);
+      font-weight:600;
+      font-size:11px;
+      color:#111;
+      font-feature-settings:"tnum" 1;
+    }
+    .mtable .amtcell{
+      font-family:var(--num-font);
+      font-weight:700;
+      font-size:11.5px;
+      color:#111;
+      font-feature-settings:"tnum" 1;
+    }
+    .words-row td{background:#f5f5f3 !important;border-top:1.5px solid #bbb;font-size:9.5px;font-style:italic;color:#555;font-weight:600;padding:7px 10px;}
+    .c{text-align:center;}.r{text-align:right;}
+
+    /* Bottom summary area */
+    .dbottom{display:flex;gap:18px;margin-top:10px;}
+    .dleft{width:50%;display:flex;flex-direction:column;gap:8px;}
+    .bank-lbl{font-size:8.5px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:3px;}
+    .bank-blk{background:#f8f8f6;border-left:3px solid #111;padding:8px 10px;font-size:10px;line-height:2;color:#333;}
+    /* ✅ FIX #7: Bank account number now monospaced for easy reading */
+    .bank-blk .acct-num{font-family:var(--num-font);font-weight:700;font-size:11px;color:#111;letter-spacing:.5px;}
+    .dright{flex:1;padding-top:2px;}
+    .stbl{width:100%;border-collapse:collapse;}
+    .stbl td{padding:5px 4px;font-size:11.5px;border-bottom:1px solid #eee;}
+    .stbl .slbl{color:#777;font-family:'Source Sans 3',sans-serif;}
+    /* ✅ FIX #4: Summary amounts all use Roboto Mono */
+    .stbl .sval{text-align:right;font-weight:700;font-family:var(--num-font);color:#111;font-size:12px;font-feature-settings:"tnum" 1;}
+    .stbl .stot td{border-top:2.5px solid #111;border-bottom:none;padding-top:8px;}
+    .stbl .stot .slbl{font-family:'Playfair Display',serif;font-weight:900;font-size:13px;color:#111;}
+    /* ✅ FIX #5: Grand total number is large, bold, monospaced */
+    .stbl .stot .sval{font-family:var(--num-font);font-weight:700;font-size:14px;color:#111;letter-spacing:.3px;}
+
+    /* Signature + Declaration */
+    .sig-decl-row{display:flex;align-items:flex-start;justify-content:space-between;margin-top:10px;gap:20px;padding:10px 0 0;border-top:1.5px solid #e0e0e0;}
+    .decl-block{flex:1;background:#f8f8f6;border-left:3px solid #111;padding:8px 12px;font-size:10px;color:#555;font-style:italic;line-height:1.7;}
+    .decl-block strong{color:#111;font-style:normal;font-size:8.5px;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:3px;font-family:'Playfair Display',serif;}
+    .sig-block{width:200px;text-align:center;flex-shrink:0;}
+    .sig-img-wrap{height:52px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:4px;}
+    .sig-img-wrap img{max-height:48px;max-width:175px;object-fit:contain;}
+    .sig-line{border-top:1.5px solid #111;margin:0 10px 5px;}
+    .sig-company{font-family:'Playfair Display',serif;font-size:8px;font-weight:800;color:#111;text-transform:uppercase;letter-spacing:.3px;line-height:1.5;}
+    .sig-title{font-size:7.5px;color:var(--stone);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-top:2px;}
+
+    /* Footer */
+    .dfooter{margin-top:auto;display:flex;flex-direction:column;align-items:center;padding-top:8px;}
+    .qrwrap{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+    .qrwrap img{width:60px;height:60px;border:1.5px solid #ddd;padding:3px;border-radius:3px;background:white;display:block;}
+    .qr-info{font-size:8.5px;color:#999;max-width:160px;line-height:1.65;}
+    /* ✅ FIX #8: Doc number in QR info uses monospace */
+    .qr-info strong{font-family:var(--num-font);color:#555;}
+    /* ✅ FIX #15: Footer strip refined */
+    .dfstrip{background:#111;color:white;font-size:9px;text-align:center;padding:9px 46px;align-self:stretch;letter-spacing:.5px;font-weight:500;text-transform:uppercase;}
+    .dfstrip span{color:#888;}
+    .dfstrip .page-ref{color:rgba(255,255,255,.25);font-size:8px;margin-left:10px;}
+
+    /* ── MODAL ── */
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center;padding:20px;}
+    .mc{background:white;width:100%;max-width:500px;border-radius:4px;padding:24px;max-height:88vh;overflow-y:auto;border-top:4px solid var(--ink);}
+    .mhd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #eee;}
+    .mhd h3{margin:0;color:var(--ink);font-family:'Playfair Display',serif;font-size:16px;}
+    .mx{cursor:pointer;color:#ef4444;font-size:20px;font-weight:bold;}
+    .hcard{border:1.5px solid var(--rule);padding:13px;border-radius:3px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;background:#fafafa;}
+    .hbadge{display:inline-block;padding:2px 9px;border-radius:2px;font-size:9px;font-weight:800;background:var(--ink);color:white;letter-spacing:.8px;margin-bottom:4px;text-transform:uppercase;}
+
+    /* ── PWA BANNER ── */
+    .ibanner{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:white;border-radius:4px;padding:14px 18px;box-shadow:0 8px 28px rgba(0,0,0,.4);z-index:999;width:92%;max-width:420px;}
+    .ibanner.show{display:flex;align-items:center;gap:12px;}
+    .ibanner .icon{font-size:26px;flex-shrink:0;}
+    .ibanner .txt{flex:1;font-size:12px;}
+    .ibanner .txt strong{display:block;font-family:'Playfair Display',serif;font-size:14px;margin-bottom:2px;}
+    .ibtn{background:white;color:var(--ink);border:none;padding:8px 16px;border-radius:3px;font-weight:700;cursor:pointer;font-size:11px;white-space:nowrap;text-transform:uppercase;}
+    .xbtn{background:transparent;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:22px;padding:0;}
+
+    @media print{
+      body{background:white;}
+      .topbar,.drawer-overlay,.drawer,.mobile-tabs,.editor-section,.ibanner{display:none !important;}
+      .preview-section{display:block !important;padding:0;width:100%;background:white;}
+      .doc-wrapper{transform:none !important;height:auto !important;}
+      .doc{box-shadow:none;width:100%;height:auto;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginPage" class="show">
+  <div class="login-card">
+    <div class="login-logo-wrap">
+      <img src="leiqier_logo.png" alt="Leiqier" onerror="this.style.display='none'">
+    </div>
+    <h2 class="login-title">Leiqier International Stone</h2>
+    <p class="login-sub">Company Ltd &nbsp;·&nbsp; Admin Portal</p>
+    <div class="login-err" id="loginErr"></div>
+    <label class="login-lbl" for="loginEmail">Email Address</label>
+    <input class="login-input" id="loginEmail" type="email" placeholder="admin@leiqier.com" autocomplete="username"/>
+    <label class="login-lbl" for="loginPwd">Password</label>
+    <input class="login-input" id="loginPwd" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Sign In</button>
+    <div class="login-footer">Authorized personnel only &nbsp;·&nbsp; <span>Leiqier International Stone Co. Ltd</span></div>
+  </div>
+</div>
+
+<!-- DOWNLOAD OVERLAY -->
+<div id="dlOverlay"><div class="spinner"></div><div class="dl-msg" id="dlMsg">Preparing document…</div></div>
+
+<!-- PWA BANNER -->
+<div class="ibanner" id="ib">
+  <div class="icon">⛰️</div>
+  <div class="txt"><strong>Install Leiqier Docs</strong>Add to home screen for fast access</div>
+  <button class="ibtn" onclick="installPWA()">Install</button>
+  <button class="xbtn" onclick="document.getElementById('ib').classList.remove('show')">✕</button>
+</div>
+
+<!-- TOPBAR -->
+<nav class="topbar">
+  <div class="hamburger" onclick="toggleDrawer()">☰</div>
+  <img src="leiqier_logo.png" class="topbar-logo" alt="" onerror="this.style.display='none'">
+  <div class="topbar-text">
+    <div class="topbar-title">Leiqier International Stone</div>
+    <div class="topbar-sub">Company Ltd · Document Generator</div>
+  </div>
+  <div id="topbarUser" class="topbar-user"></div>
+  <div style="font-size:20px;cursor:pointer;color:#aaa;margin-left:10px" onclick="renderPreview()">↻</div>
+</nav>
+
+<!-- MOBILE TABS -->
+<div class="mobile-tabs">
+  <div class="tab active" id="tab-edit" onclick="switchTab('edit')">✏️ Editor</div>
+  <div class="tab" id="tab-preview" onclick="switchTab('preview')">👁️ Preview</div>
+</div>
+
+<!-- DRAWER -->
+<div class="drawer-overlay" id="doverlay" onclick="toggleDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <img src="leiqier_logo.png" alt="" onerror="this.style.display='none'">
+    <h3>Leiqier International Stone</h3>
+    <p>Company Ltd · Document System</p>
+  </div>
+  <div class="drawer-user-info" id="drawerUserInfo">Signed in as —</div>
+  <div class="drawer-menu">
+    <div class="drawer-item" onclick="closeDrawer();openHistory()"><span class="di">☁️</span> Cloud History</div>
+    <div class="drawer-item" onclick="closeDrawer();saveToCloud()"><span class="di">💾</span> Save Document</div>
+    <div class="drawer-item" onclick="closeDrawer();dlAction('pdf')"><span class="di">📄</span> Download PDF</div>
+    <div class="drawer-item" onclick="closeDrawer();dlAction('img')"><span class="di">🖼️</span> Download Image</div>
+    <div class="drawer-item" onclick="closeDrawer();window.print()"><span class="di">🖨️</span> Print</div>
+    <div class="drawer-item danger" onclick="closeDrawer();doSignOut()"><span class="di">🚪</span> Sign Out</div>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div class="modal" id="histModal">
+  <div class="mc">
+    <div class="mhd"><h3>☁️ Saved Documents</h3><span class="mx" onclick="document.getElementById('histModal').style.display='none'">✕</span></div>
+    <div id="histList"><div style="text-align:center;padding:30px;color:#aaa">Loading from cloud...</div></div>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="wrap">
+  <div class="editor-section" id="editorView">
+    <div id="fbs" class="fbs pend">⏳ Connecting to system...</div>
+
+    <div class="sec-hd">📄 Document</div>
+    <div class="frow fg">
+      <div>
+        <label>Type</label>
+        <select id="docType" onchange="generateDocNumber()">
+          <option value="INVOICE">Invoice</option>
+          <option value="QUOTATION">Quotation</option>
+          <option value="RECEIPT">Receipt</option>
+        </select>
+      </div>
+      <div><label>Auto Number</label><div class="docno-badge" id="docNo">LQR-INV-0001</div></div>
+    </div>
+    <div class="fg"><label>Date</label><input id="invDate" type="date"></div>
+
+    <div class="sec-hd">👤 Client</div>
+    <div class="fg"><label>Client / Company Name</label><input id="clientName" type="text" placeholder="e.g. Kampala City Council"></div>
+    <div class="fg"><label>Subject / Reference</label><input id="subject" type="text" placeholder="RE: Supply of granite tiles..."></div>
+
+    <div class="sec-hd">📦 Line Items</div>
+    <div class="fg" style="background:#fafafa;padding:12px;border-radius:3px;border:1.5px solid var(--rule)">
+      <div class="fg"><label>Description</label><input id="iDesc" type="text" placeholder="e.g. Granite Tiles 60×60 cm"></div>
+      <div class="frow" style="margin-bottom:10px">
+        <div><label>Qty</label><input id="iQty" type="number" value="1" step="any" min="0"></div>
+        <div><label>Unit Rate (UGX)</label><input id="iPrice" type="number" value="0" step="any" min="0"></div>
+      </div>
+      <button id="addBtn" class="btn btn-dk">＋ Add Line Item</button>
+    </div>
+    <div id="iTracker" class="ilist">
+      <div style="padding:10px 12px;color:#bbb;font-size:11px;text-align:center">No items added yet</div>
+    </div>
+
+    <div class="sec-hd">💰 Payment</div>
+    <div class="fg"><label>Amount Paid (UGX) — leave 0 for Quotations</label><input id="amtPaid" type="number" value="0" step="any" min="0"></div>
+
+    <div class="sec-hd">⚡ Actions</div>
+    <div class="frow" style="margin-bottom:8px">
+      <button class="btn btn-dk" onclick="saveToCloud()">☁️ Save</button>
+      <button class="btn btn-md" onclick="dlAction('pdf')">📄 PDF</button>
+    </div>
+    <button class="btn btn-o" onclick="dlAction('img')">🖼️ Download Image</button>
+  </div>
+
+  <div class="preview-section" id="previewView">
+    <div class="doc-wrapper" id="docWrap">
+      <div id="doc" class="doc">
+        <div style="text-align:center;margin-top:380px;color:#ccc;font-family:'Playfair Display',serif;font-size:13px">Loading preview...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   PWA
+   ═══════════════════════════════════════ */
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('ib').classList.add('show');});
+window.addEventListener('appinstalled',()=>{document.getElementById('ib').classList.remove('show');deferredPrompt=null;});
+window.installPWA=async()=>{if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null;document.getElementById('ib').classList.remove('show');}};
+
+/* ═══════════════════════════════════════
+   AUTH EVENTS
+   ═══════════════════════════════════════ */
+document.addEventListener('authReady',e=>{
+  const user=e.detail.user;
+  document.getElementById('loginPage').classList.remove('show');
+  document.getElementById('topbarUser').textContent=user.email||'Admin';
+  document.getElementById('drawerUserInfo').textContent='👤 '+(user.email||'Admin');
+  const el=document.getElementById('fbs');el.className='fbs ok';el.textContent='✅ System ready — cloud sync active';
+  generateDocNumber();
+});
+document.addEventListener('authLoggedOut',()=>{
+  document.getElementById('loginPage').classList.add('show');
+  document.getElementById('topbarUser').textContent='';
+  const el=document.getElementById('fbs');el.className='fbs err';el.textContent='🔒 Not signed in';
+});
+
+/* ═══════════════════════════════════════
+   LOGIN / LOGOUT
+   ═══════════════════════════════════════ */
+window.doLogin=async()=>{
+  const email=document.getElementById('loginEmail').value.trim(),
+        pwd=document.getElementById('loginPwd').value;
+  const errEl=document.getElementById('loginErr'),btn=document.getElementById('loginBtn');
+  errEl.classList.remove('show');
+  if(!email||!pwd){errEl.textContent='Please enter email and password.';errEl.classList.add('show');return;}
+  btn.disabled=true;btn.textContent='Signing in…';
+  try{await window._fbSignIn(email,pwd);}
+  catch(e){
+    let msg='';
+    switch(e.code){
+      case 'auth/user-not-found':case 'auth/wrong-password':case 'auth/invalid-credential':msg='❌ Incorrect email or password.';break;
+      case 'auth/invalid-email':msg='❌ Invalid email format.';break;
+      case 'auth/user-disabled':msg='❌ Account disabled.';break;
+      case 'auth/too-many-requests':msg='⏳ Too many attempts. Try later.';break;
+      case 'auth/network-request-failed':msg='🌐 No internet connection.';break;
+      default:msg=`❌ (${e.code}): ${e.message}`;
+    }
+    errEl.textContent=msg;errEl.classList.add('show');
+  }finally{btn.disabled=false;btn.textContent='Sign In';}
+};
+window.doSignOut=async()=>{if(!confirm('Sign out?'))return;try{await window._fbSignOut();}catch(e){console.warn(e);}};
+
+/* ═══════════════════════════════════════
+   DATA & HELPERS
+   ═══════════════════════════════════════ */
+let items=[],docNum='LQR-INV-0001';
+const R=v=>Math.round((v+Number.EPSILON)*100)/100;
+
+/** Format a number with commas. Whole numbers show no decimal. */
+function fmtFull(n){
+  if(!n&&n!==0)return '0';
+  const num=Number(n);
+  if(Number.isInteger(num))return num.toLocaleString('en-UG');
+  return num.toLocaleString('en-UG',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+/** Format qty — show as integer if whole, otherwise 2dp */
+function fmtQty(n){
+  const num=Number(n)||0;
+  return Number.isInteger(num)?num.toString():num.toFixed(2);
+}
+
+function amountWords(n){
+  if(!n||n===0)return 'Zero Uganda Shillings Only';
+  const ones=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine',
+    'Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const tens=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  function b1000(x){
+    if(x<20)return ones[x];
+    if(x<100)return tens[Math.floor(x/10)]+(x%10?' '+ones[x%10]:'');
+    return ones[Math.floor(x/100)]+' Hundred'+(x%100?' '+b1000(x%100):'');
+  }
+  let r='',x=Math.floor(n);
+  const bn=Math.floor(x/1e9),mn=Math.floor((x%1e9)/1e6),th=Math.floor((x%1e6)/1e3),rm=x%1e3;
+  if(bn)r+=b1000(bn)+' Billion ';
+  if(mn)r+=b1000(mn)+' Million ';
+  if(th)r+=b1000(th)+' Thousand ';
+  if(rm)r+=b1000(rm)+' ';
+  return r.trim()+' Uganda Shillings Only';
+}
+
+function fmtDate(iso){
+  if(!iso)return '';
+  const d=new Date(iso+'T00:00:00');
+  return isNaN(d)?iso:d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+/* ═══════════════════════════════════════
+   DOC NUMBER GENERATION
+   ═══════════════════════════════════════ */
+async function generateDocNumber(){
+  const t=document.getElementById('docType').value;
+  const pfx=t==='INVOICE'?'LQR-INV':t==='QUOTATION'?'LQR-QT':'LQR-RCP';
+  let n=1;
+  try{
+    if(window._firebaseReady&&window._db){
+      const snap=await window._fbGetDocs(window._fbQuery(
+        window._fbCollection(window._db,'lqr_documents'),
+        window._fbOrderBy('createdAt','desc')
+      ));
+      n=snap.docs.filter(d=>d.data().type===t).length+1;
+    }
+  }catch(e){n=Math.floor(Date.now()/1000)%9000+1000;}
+  docNum=`${pfx}-${String(n).padStart(4,'0')}`;
+  document.getElementById('docNo').textContent=docNum;
+  renderPreview();
+}
+
+/* ═══════════════════════════════════════
+   CLOUD SAVE / HISTORY
+   ═══════════════════════════════════════ */
+window.saveToCloud=async()=>{
+  if(!window._firebaseReady){alert('⚠️ Not signed in.');return;}
+  const total=items.reduce((s,i)=>R(s+i.total),0);
+  const data={
+    type:document.getElementById('docType').value,
+    docNumber:docNum,
+    date:document.getElementById('invDate').value,
+    client:document.getElementById('clientName').value||'',
+    subject:document.getElementById('subject').value||'',
+    paid:parseFloat(document.getElementById('amtPaid').value)||0,
+    items:JSON.parse(JSON.stringify(items)),
+    total,
+    savedBy:window._currentUser?window._currentUser.email:'unknown',
+    createdAt:new Date().toISOString()
+  };
+  try{
+    await window._fbAddDoc(window._fbCollection(window._db,'lqr_documents'),data);
+    alert(`✅ ${data.type} ${docNum} saved!`);
+    generateDocNumber();
+  }catch(e){alert('Save failed: '+e.message);}
+};
+
+window.openHistory=async()=>{
+  document.getElementById('histModal').style.display='flex';
+  const list=document.getElementById('histList');
+  if(!window._firebaseReady){list.innerHTML='<p style="text-align:center;color:red;padding:20px">Not signed in.</p>';return;}
+  list.innerHTML='<div style="text-align:center;padding:20px;color:#aaa">Loading...</div>';
+  try{
+    const snap=await window._fbGetDocs(window._fbQuery(
+      window._fbCollection(window._db,'lqr_documents'),
+      window._fbOrderBy('createdAt','desc')
+    ));
+    if(snap.empty){list.innerHTML='<p style="text-align:center;color:#aaa;padding:20px">No saved documents yet.</p>';return;}
+    list.innerHTML=snap.docs.map(d=>{
+      const h=d.data();
+      return `<div class="hcard">
+        <div>
+          <span class="hbadge">${h.type}</span>
+          <strong style="display:block;font-family:var(--num-font);font-size:12px;letter-spacing:.4px">${h.docNumber||'#'}</strong>
+          <span style="font-size:11px;color:#888">${h.client||'—'} · ${fmtDate(h.date)}</span>
+          <div style="font-size:12px;font-weight:700;font-family:var(--num-font)">UGX ${fmtFull(h.total||0)}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button class="btn btn-dk" style="padding:6px 12px;font-size:11px;width:auto" onclick="loadDoc('${d.id}')">Load</button>
+          <button style="background:#ef4444;color:white;padding:6px 12px;font-size:11px;width:auto;border:none;border-radius:3px;cursor:pointer;font-weight:700" onclick="delDoc('${d.id}')">Del</button>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){list.innerHTML=`<p style="color:red;padding:10px">Error: ${e.message}</p>`;}
+};
+
+window.loadDoc=async id=>{
+  try{
+    const snap=await window._fbGetDoc(window._fbDoc(window._db,'lqr_documents',id));
+    if(!snap.exists()){alert('Not found.');return;}
+    const h=snap.data();
+    document.getElementById('docType').value=h.type||'INVOICE';
+    document.getElementById('invDate').value=h.date||'';
+    document.getElementById('clientName').value=h.client||'';
+    document.getElementById('subject').value=h.subject||'';
+    document.getElementById('amtPaid').value=h.paid||0;
+    items=h.items||[];docNum=h.docNumber||'#';
+    document.getElementById('docNo').textContent=docNum;
+    updateTracker();
+    document.getElementById('histModal').style.display='none';
+    switchTab('edit');
+    renderPreview();
+  }catch(e){alert('Load error: '+e.message);}
+};
+
+window.delDoc=async id=>{
+  if(!confirm('Permanently delete?'))return;
+  try{await window._fbDeleteDoc(window._fbDoc(window._db,'lqr_documents',id));window.openHistory();}
+  catch(e){alert('Delete failed: '+e.message);}
+};
+
+/* ═══════════════════════════════════════
+   UI HELPERS
+   ═══════════════════════════════════════ */
+function switchTab(t){
+  if(window.innerWidth>860)return;
+  const ev=document.getElementById('editorView'),pv=document.getElementById('previewView');
+  if(t==='edit'){
+    ev.style.display='block';pv.style.display='none';
+    document.getElementById('tab-edit').classList.add('active');
+    document.getElementById('tab-preview').classList.remove('active');
+  }else{
+    ev.style.display='none';pv.style.display='block';
+    document.getElementById('tab-preview').classList.add('active');
+    document.getElementById('tab-edit').classList.remove('active');
+    renderPreview(); // ✅ FIX #11 — always render on tab switch
+    scaleA4();
+  }
+}
+
+function toggleDrawer(){document.getElementById('drawer').classList.toggle('active');document.getElementById('doverlay').classList.toggle('active');}
+function closeDrawer(){document.getElementById('drawer').classList.remove('active');document.getElementById('doverlay').classList.remove('active');}
+
+function scaleA4(){
+  const wrap=document.getElementById('docWrap'),cont=document.getElementById('previewView');
+  if(cont.style.display==='none')return;
+  const w=cont.clientWidth;
+  if(w<820&&w>0){const s=(w-14)/794;wrap.style.transform=`scale(${s})`;wrap.style.height=`${1123*s}px`;}
+  else{wrap.style.transform='scale(1)';wrap.style.height='1123px';}
+}
+window.addEventListener('resize',scaleA4);
+
+/* Live preview on form input */
+document.querySelectorAll('input:not(#iDesc):not(#iQty):not(#iPrice),select')
+  .forEach(el=>el.addEventListener('input',renderPreview));
+
+/* ═══════════════════════════════════════
+   LINE ITEMS
+   ═══════════════════════════════════════ */
+document.getElementById('addBtn').onclick=()=>{
+  const desc=document.getElementById('iDesc').value.trim();
+  if(!desc)return;
+  const qty=parseFloat(document.getElementById('iQty').value)||0,
+        price=parseFloat(document.getElementById('iPrice').value)||0;
+  items.push({desc,qty,price,total:R(qty*price)});
+  document.getElementById('iDesc').value='';
+  document.getElementById('iQty').value=1;
+  document.getElementById('iPrice').value=0;
+  updateTracker();renderPreview();
+};
+
+function updateTracker(){
+  const el=document.getElementById('iTracker');
+  if(!items.length){
+    el.innerHTML='<div style="padding:10px 12px;color:#bbb;font-size:11px;text-align:center">No items added yet</div>';
+    return;
+  }
+  el.innerHTML=items.map((it,i)=>`
+    <div class="irow">
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.desc.substring(0,28)}</span>
+      <span style="color:#111;font-weight:700;margin:0 8px;white-space:nowrap;font-family:var(--num-font);font-size:11px">${fmtFull(it.total)}</span>
+      <span class="delbtn" onclick="rmItem(${i})">✕</span>
+    </div>`).join('');
+}
+window.rmItem=i=>{items.splice(i,1);updateTracker();renderPreview();};
+
+/* ═══════════════════════════════════════
+   RENDER PREVIEW  ← core function
+   ═══════════════════════════════════════ */
+function renderPreview(){
+  const dt=document.getElementById('docType').value;
+  const total=items.reduce((s,i)=>R(s+i.total),0);
+  const paid=parseFloat(document.getElementById('amtPaid').value)||0,
+        bal=R(total-paid);
+  const client=document.getElementById('clientName').value||'CLIENT NAME';
+  const subj=document.getElementById('subject').value||'';
+  const dateIso=document.getElementById('invDate').value,
+        dispDate=fmtDate(dateIso);
+  const dueDate=fmtDate(dateIso
+    ?new Date(new Date(dateIso+'T00:00:00').getTime()+30*86400000).toISOString().slice(0,10)
+    :'');
+
+  let title='INVOICE',subtitle='Invoice',dlbl='Invoice Date';
+  if(dt==='QUOTATION'){title='QUOTATION';subtitle='Quotation';dlbl='Quotation Date';}
+  if(dt==='RECEIPT'){title='SALES RECEIPT';subtitle='Receipt';dlbl='Receipt Date';}
+  const btlbl=dt==='RECEIPT'?'Received From':'Bill To';
+
+  const qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=111111&bgcolor=ffffff&data=${encodeURIComponent(dt+':'+docNum+' Total:UGX '+total)}`;
+
+  /* Table rows */
+  const trows=items.length
+    ?items.map((it,i)=>`
+      <tr>
+        <td class="c" style="font-weight:600;color:#bbb;font-size:10px;font-family:var(--num-font)">${i+1}</td>
+        <td>${it.desc}</td>
+        <td class="c numcell">${fmtQty(it.qty)}</td>
+        <td class="r numcell">${fmtFull(it.price)}</td>
+        <td class="r amtcell">${fmtFull(it.total)}</td>
+      </tr>`).join('')
+    :`<tr><td colspan="5" style="text-align:center;padding:18px;color:#ccc;font-style:italic">No items added</td></tr>`;
+
+  const wordRow=items.length
+    ?`<tr class="words-row">
+        <td colspan="4"><span style="font-weight:800;color:#111;font-style:normal">Amount in Words: </span>${amountWords(total)}</td>
+        <td class="r amtcell" style="font-style:normal">= ${fmtFull(total)}</td>
+      </tr>`
+    :'';
+
+  /* Summary block */
+  let sumHTML='';
+  if(dt==='QUOTATION'){
+    sumHTML=`<table class="stbl">
+      <tr class="stot"><td class="slbl">Total Amount</td><td class="sval">UGX&nbsp;${fmtFull(total)}</td></tr>
+    </table>`;
+  }else if(dt==='RECEIPT'){
+    sumHTML=`<table class="stbl">
+      <tr><td class="slbl">Total Amount</td><td class="sval">UGX&nbsp;${fmtFull(total)}</td></tr>
+      <tr class="stot"><td class="slbl">Amount Received</td><td class="sval">UGX&nbsp;${fmtFull(paid)}</td></tr>
+    </table>`;
+  }else{
+    sumHTML=`<table class="stbl">
+      <tr><td class="slbl">Sub Total</td><td class="sval">UGX&nbsp;${fmtFull(total)}</td></tr>
+      <tr><td class="slbl">Amount Paid</td><td class="sval">UGX&nbsp;${fmtFull(paid)}</td></tr>
+      <tr class="stot"><td class="slbl">Balance Due</td><td class="sval">UGX&nbsp;${fmtFull(bal)}</td></tr>
+    </table>`;
+  }
+
+  const declDocType=dt==='INVOICE'?'invoice':dt==='QUOTATION'?'quotation':'receipt';
+
+  document.getElementById('doc').innerHTML=`
+    <div class="doc-wm"></div>
+    <div class="doc-inner">
+
+      <!-- HEADER -->
+      <div class="dhband">
+        <div class="dhband-left">
+          <div class="dhband-logo">
+            <img src="leiqier_logo.png" alt="Leiqier" onerror="this.style.display='none'">
+          </div>
+          <div class="dhband-divider"></div>
+          <div>
+            <div class="dhband-co-name">LEIQIER INTERNATIONAL STONE<br>COMPANY LTD</div>
+            <div class="dhband-co-detail">
+              Plot 86 Ntawo Nakasajja, Gayaza–Kayunga Road, Mukono District, Uganda<br>
+              TEL: +256 783 933 666 &nbsp;&nbsp;|&nbsp;&nbsp; TIN: 1014152919
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOC TYPE BANNER -->
+      <div class="doc-type-banner">
+        <div class="doc-type-title">${title}</div>
+        <div class="doc-type-meta">
+          <div class="doc-meta-row">
+            <span class="doc-meta-lbl">${dlbl}</span>
+            <span class="doc-meta-val">${dispDate}</span>
+          </div>
+          ${dt!=='RECEIPT'?`<div class="doc-meta-row">
+            <span class="doc-meta-lbl">${dt==='QUOTATION'?'Valid Until':'Due Date'}</span>
+            <span class="doc-meta-val">${dueDate}</span>
+          </div>`:''}
+        </div>
+      </div>
+
+      <!-- DOC NUMBER STRIP -->
+      <div class="docno-strip">
+        <span class="docno-strip-lbl">${subtitle} Number</span>
+        <span class="docno-strip-val">${docNum}</span>
+      </div>
+
+      <!-- BODY -->
+      <div class="dbody">
+        <div class="dbt" style="margin-top:10px">
+          <div class="dbt-lbl">${btlbl}</div>
+          <div class="dbt-name">${client}</div>
+          ${subj?`<div class="dbt-sub">RE: ${subj}</div>`:''}
+        </div>
+        <div class="ddiv"></div>
+
+        <!-- ITEMS TABLE -->
+        <table class="mtable">
+          <thead><tr>
+            <th width="30" class="c">#</th>
+            <th>Description of Goods / Services</th>
+            <th width="60" class="c">Qty</th>
+            <th width="130" class="r thstone">Unit Rate (UGX)</th>
+            <th width="135" class="r thstone">Amount (UGX)</th>
+          </tr></thead>
+          <tbody>${trows}${wordRow}</tbody>
+        </table>
+
+        <!-- BOTTOM SECTION -->
+        <div class="dbottom">
+          <div class="dleft">
+            <div>
+              <div class="bank-lbl">Payment Details</div>
+              <div class="bank-blk">
+                <strong>PEARL BANK</strong><br>
+                Account Name: LEIQIER INTERNATIONAL STONE COMPANY LTD<br>
+                Account No: <span class="acct-num">4020064000010</span><br>
+                TIN: <span class="acct-num">1014152919</span>
+              </div>
+            </div>
+          </div>
+          <div class="dright">${sumHTML}</div>
+        </div>
+
+        <!-- SIGNATURE + DECLARATION -->
+        <div class="sig-decl-row">
+          <div class="decl-block">
+            <strong>Declaration</strong>
+            We declare that this ${declDocType} shows the actual price of the goods described and that all particulars are true and correct.
+          </div>
+          <div class="sig-block">
+            <div class="sig-img-wrap">
+              <img src="signature.png" alt="Authorised Signature" onerror="this.style.display='none'">
+            </div>
+            <div class="sig-line"></div>
+            <div class="sig-company">Leiqier International Stone<br>Company Ltd</div>
+            <div class="sig-title">Authorised Signatory</div>
+          </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="dfooter">
+          <div class="qrwrap">
+            <img src="${qrUrl}" alt="QR Code" crossorigin="anonymous"
+              onerror="this.style.opacity='.15'" loading="lazy">
+            <div class="qr-info">
+              ${subtitle} No: <strong>${docNum}</strong><br>
+              ${dispDate}<br>
+              <span style="color:#555">${client}</span>
+            </div>
+          </div>
+          <div class="dfstrip">
+            LEIQIER INTERNATIONAL STONE COMPANY LTD &nbsp;|&nbsp;
+            <span>Tel: +256 783 933 666</span> &nbsp;|&nbsp;
+            <span>TIN: 1014152919</span> &nbsp;|&nbsp;
+            <span>Plot 86 Ntawo Nakasajja, Mukono</span>
+            <span class="page-ref">Page 1 of 1</span>
+          </div>
+        </div>
+      </div><!-- /dbody -->
+    </div><!-- /doc-inner -->`;
+
+  scaleA4();
+}
+
+/* ═══════════════════════════════════════
+   DOWNLOAD  — high-quality PNG/PDF
+   ═══════════════════════════════════════ */
+window.dlAction=type=>{
+  if(window.innerWidth<=860)switchTab('preview');
+  const overlay=document.getElementById('dlOverlay'),msg=document.getElementById('dlMsg');
+  msg.textContent=type==='pdf'?'Generating High-Quality PDF…':'Generating High-Quality Image…';
+  overlay.classList.add('show');
+
+  const wrap=document.getElementById('docWrap'),prev=document.getElementById('doc');
+  const origTransform=wrap.style.transform;
+  const origHeight=wrap.style.height;
+
+  // Reset scale before capture so canvas matches real A4 pixel dimensions
+  wrap.style.transform='scale(1)';
+  wrap.style.height='1123px';
+
+  setTimeout(()=>{
+    html2canvas(prev,{
+      scale:3.5,          // ✅ FIX: 3.5× = ~2779px wide — crisp on any screen/print
+      useCORS:true,
+      backgroundColor:'#ffffff',
+      logging:false,
+      allowTaint:false
+    }).then(canvas=>{
+      wrap.style.transform=origTransform;
+      wrap.style.height=origHeight;
+      overlay.classList.remove('show');
+
+      try{
+        const dateStr=document.getElementById('invDate').value||new Date().toISOString().slice(0,10);
+        if(type==='pdf'){
+          // ✅ FIX: PNG data for lossless quality in PDF
+          const imgData=canvas.toDataURL('image/png');
+          const pdf=new jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+          pdf.addImage(imgData,'PNG',0,0,210,297,undefined,'FAST');
+          pdf.save(`${docNum}_${dateStr}.pdf`);
+        }else{
+          // PNG export — lossless, no JPEG artefacts
+          const a=document.createElement('a');
+          a.download=`${docNum}_${dateStr}.png`;
+          a.href=canvas.toDataURL('image/png');
+          a.click();
+        }
+      }catch(e){
+        overlay.classList.remove('show');
+        alert('Download failed. Ensure the app is served over HTTPS.\n\n'+e.message);
+      }
+    }).catch(e=>{
+      wrap.style.transform=origTransform;
+      wrap.style.height=origHeight;
+      overlay.classList.remove('show');
+      alert('Render error: '+e.message);
+    });
+  },450);
+};
+
+/* ═══════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════ */
+document.getElementById('invDate').value=new Date().toISOString().slice(0,10);
+
+window.addEventListener('load',()=>{
+  renderPreview();
+  scaleA4();
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw-leiqier.js')
+      .then(()=>console.log('SW registered'))
+      .catch(console.warn);
+  }
+});
+</script>
+</body>
+</html>
